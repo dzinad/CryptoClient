@@ -2,6 +2,7 @@ package by.bsu.ddzina.lab2
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -43,4 +44,7 @@ object Utils {
         return messageDigest.digest()
     }
 
+    fun showToast(context: Context, message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
 }

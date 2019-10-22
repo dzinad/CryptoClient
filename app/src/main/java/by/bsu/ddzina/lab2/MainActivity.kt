@@ -9,7 +9,6 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.security.Key
 import java.security.interfaces.RSAPrivateKey
@@ -18,7 +17,7 @@ import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
-    private lateinit var serverCommunicator: ServerCommunicator
+    private val serverCommunicator = ServerCommunicator()
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var fileTextView: EditText
     private var sessionKey: Key? = null
@@ -36,7 +35,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         findViewById<Button>(R.id.logoutBtn).setOnClickListener(this)
         preferences = applicationContext.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
         keyStorageHelper = KeyStorageHelper(applicationContext)
-        serverCommunicator = ServerCommunicator(applicationContext) // todo move initialization to constructor
         executor.execute { loadPrivateKey() }
     }
 
@@ -52,40 +50,57 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun clickedGenerate() {
-        try {
-            executor.execute {
-                val keyPair = CryptoHelper.generateKeyPair()
-                privateKey = keyPair.private
-                keyStorageHelper.savePrivateKey(privateKey)
-                serverCommunicator.sendPublicRsaKey(keyPair.public)
-            }
-        } catch (ex: Throwable) {
-            Toast.makeText(this, "Prime numbers are of wrong format", Toast.LENGTH_SHORT).show()
+        executor.execute {
+            val keyPair = CryptoHelper.generateKeyPair()
+            privateKey = keyPair.private
+            keyStorageHelper.savePrivateKey(privateKey)
+            serverCommunicator.sendPublicRsaKey(keyPair.public)
         }
     }
 
     private fun clickedRequestText() {
         val fileName = fileTextView.text.toString()
         if (TextUtils.isEmpty(fileName)) {
-            Toast.makeText(this, "Enter file name", Toast.LENGTH_SHORT).show()
+            Utils.showToast(applicationContext, "Enter file name.")
         } else {
             executor.execute {
                 serverCommunicator.sendRequestForFile(fileName) { json ->
-                    sessionKey?.let {
-                        try {
-                            val text = json.get(jsonKeyEncyptedKey) as ByteArray
-                            val iv = json.get(jsonKeyIv) as ByteArray
-                            val decryptedText = CryptoHelper.decryptText(it, text, iv)
-                            Utils.saveFile(applicationContext, textFileName, decryptedText)
-                            val intent = Intent(this, TextActivity::class.java)
-                            startActivity(intent)
-                        } catch (ex: Throwable) {
-                            Log.e("[MainActivity]", "Something went wrong while processing requested text.")
-                            ex.printStackTrace()
+                    val error = if (json != null) json.optString(jsonKeyError) else ""
+                    if (error.isEmpty() == false) {
+                        when (error) {
+                            jsonValueNoFile -> handleNoFile()
+                            jsonValueSessionKeyExpired -> handleSessionKeyExpired()
+                        }
+                    } else {
+                        val content = json?.optJSONObject(jsonKeyContent)
+                        sessionKey?.let {
+                            try {
+                                val text = content?.get(jsonKeyEncyptedKey) as ByteArray
+                                val iv = content?.get(jsonKeyIv) as ByteArray
+                                val decryptedText = CryptoHelper.decryptText(it, text, iv)
+                                Utils.saveFile(applicationContext, textFileName, decryptedText)
+                                val intent = Intent(this, TextActivity::class.java)
+                                startActivity(intent)
+                            } catch (ex: Throwable) {
+                                Log.e("[MainActivity]", "Something went wrong while processing requested text.")
+                                ex.printStackTrace()
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+    private fun handleNoFile() {
+        runOnUiThread {
+            Utils.showToast(applicationContext, "No such file, try another name.")
+        }
+    }
+
+    private fun handleSessionKeyExpired() {
+        runOnUiThread {
+            Utils.showToast(applicationContext, "Session key expired. Request a new one.")
         }
     }
 
@@ -106,7 +121,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private fun clickedLogout() {
         executor.execute {
             preferences.edit().remove(keyUsername).commit()
-            println("[ddlog] ${preferences.getString(keyUsername, null)}")
             runOnUiThread {
                 finish()
                 startActivity(Intent(this, LoginActivity::class.java))

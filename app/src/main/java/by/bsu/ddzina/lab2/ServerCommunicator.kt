@@ -17,7 +17,7 @@ import java.io.DataOutputStream
 
 
 @TargetApi(Build.VERSION_CODES.N)
-class ServerCommunicator(private val context: Context) {
+class ServerCommunicator {
 
     enum class LoginResult(val stringValue: String) {
         OK("OK"), WRONG_USERNAME("WRONG_USERNAME"), WRONG_PASSWORD("WRONG_PASSWORD"), ERROR("ERROR");
@@ -26,19 +26,6 @@ class ServerCommunicator(private val context: Context) {
     private val baseUrl = "http://10.0.2.2:8000/"
     private var sessionKey: Key? = null
     private var publicKey: Key? = null
-
-    init { // todo remove
-        try {
-            val json = JSONObject(String(Utils.readFile(context, publicKeyFileName), Charsets.UTF_8))
-            val keySpec = RSAPublicKeySpec(
-                json.getString("modulus").toBigInteger(),
-                json.getString("exp").toBigInteger()
-            )
-            publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
-        } catch (ex: Throwable) {
-            ex.printStackTrace()
-        }
-    }
 
     fun requestLogin(username: String, password: String, completion: (LoginResult) -> Unit) {
         val url = URL("${baseUrl}login")
@@ -67,20 +54,18 @@ class ServerCommunicator(private val context: Context) {
 
     fun sendPublicRsaKey(key: RSAPublicKey) {
         publicKey = key
-        // todo remove
-        Utils.saveFile(
-            context,
-            publicKeyFileName,
-            JSONObject()
-                .put("exp", key.publicExponent.toString())
-                .put("modulus", key.modulus.toString())
-                .toString()
-                .toByteArray(Charsets.UTF_8)
-        )
+        val body = JSONObject()
+            .put(jsonKeyExponent, key.publicExponent.toString())
+            .put(jsonKeyModulus, key.modulus.toString())
+            .toString()
+            .toByteArray(Charsets.UTF_8)
+
         try {
-            val url = URL("${baseUrl}public_rsa/?exp=${key.publicExponent}&mod=${key.modulus}")
+            val url = URL("${baseUrl}public_rsa/")
             with(url.openConnection() as HttpURLConnection) {
-                requestMethod = "GET"
+                requestMethod = "POST"
+                setRequestProperty("Content-Length", "${body.size}")
+                DataOutputStream(this.outputStream).use { wr -> wr.write(body) }
                 println("Send Public RSA key. Response code: $responseCode")
             }
         } catch (ex: Throwable) {
@@ -89,16 +74,24 @@ class ServerCommunicator(private val context: Context) {
         }
     }
 
-    fun sendRequestForFile(fileName: String, completion: (JSONObject) -> Unit) {
+    fun sendRequestForFile(fileName: String, completion: (JSONObject?) -> Unit) {
         val text = "The future is as certain as life will come to an end, when time feels like a burden we struggle with our certain death"
         val url = URL("${baseUrl}get_file?file=$fileName")
-        completion(CryptoHelper.encryptAes(sessionKey!!, text.toByteArray(Charsets.UTF_8)))
+        //completion(CryptoHelper.encryptAes(sessionKey!!, text.toByteArray(Charsets.UTF_8)))
         with(url.openConnection() as HttpURLConnection) {
             requestMethod = "GET"
             println("Request text file. Response code: $responseCode")
             if (responseCode == 200) {
-                // todo check
-                //completion(CryptoHelper.encryptAes(sessionKey!!, inputStream.readBytes()))
+                try {
+                    val responseJson = JSONObject(String(inputStream.readBytes()))
+                    completion(responseJson)
+                } catch (ex: Throwable) {
+                    Log.e("[ServerCommunicator]", "Could not parse server response")
+                    ex.printStackTrace()
+                    completion(null)
+                }
+            } else {
+                completion(null)
             }
         }
     }

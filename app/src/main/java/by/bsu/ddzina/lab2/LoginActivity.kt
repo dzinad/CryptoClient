@@ -17,7 +17,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var userNameEditText: EditText
     private lateinit var passwordEditText: EditText
     private lateinit var progressBar: ProgressBar
-    private lateinit var serverCommunicator: ServerCommunicator
+    private val serverCommunicator = ServerCommunicator()
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var preferences: SharedPreferences
 
@@ -27,7 +27,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
         preferences = applicationContext.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
         val username = preferences.getString(keyUsername, null)
-        println("[ddlog] 2 ${username}")
         if (username != null) {
             loginSuccessful()
         }
@@ -35,7 +34,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         userNameEditText = findViewById(R.id.usernameEditText)
         passwordEditText = findViewById(R.id.passwordEditText)
         progressBar = findViewById(R.id.loadingProgressBar)
-        serverCommunicator = ServerCommunicator(applicationContext)
         findViewById<Button>(R.id.loginBtn).setOnClickListener(this)
     }
 
@@ -43,7 +41,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         val username = userNameEditText.text.toString()
         val password = passwordEditText.text.toString()
         if (username.isBlank() || password.isBlank()) {
-            Toast.makeText(applicationContext, "Enter username and password", Toast.LENGTH_SHORT).show()
+            Utils.showToast(applicationContext, "Enter username and password")
         } else {
             progressBar.visibility = View.VISIBLE
             executor.execute {
@@ -58,19 +56,18 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                                 loginSuccessful()
                             }
                             ServerCommunicator.LoginResult.ERROR -> {
-                                Toast.makeText(applicationContext, "Some error occurred. Try again.", Toast.LENGTH_SHORT).show()
+                                Utils.showToast(applicationContext, "Some error occurred. Try again.")
                             }
                             ServerCommunicator.LoginResult.WRONG_USERNAME -> {
-                                Toast.makeText(applicationContext, "Wrong username", Toast.LENGTH_SHORT).show()
+                                Utils.showToast(applicationContext, "Wrong username.")
                             }
                             ServerCommunicator.LoginResult.WRONG_PASSWORD -> {
-                                Toast.makeText(applicationContext, "Wrong password", Toast.LENGTH_SHORT).show()
+                                Utils.showToast(applicationContext, "Wrong password.")
                             }
                         }
                     }
                 }
             }
-
         }
     }
 

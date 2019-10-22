@@ -6,38 +6,46 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="RSA generating"
-        android:layout_gravity="center_horizontal"
-        android:textSize="20sp"
-        />
-
     <Button
         android:id="@+id/generateBtn"
+        android:layout_marginTop="30dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:text="Generate" />
+        android:text="Generate RSA" />
 
     <Button
         android:id="@+id/requestSessionKeyBtn"
+        android:layout_marginTop="30dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:text="Request random session key" />
 
-    <EditText
-        android:id="@+id/fileEditText"
-        android:layout_marginTop="30dp"
-        android:layout_width="200dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="text" />
+        android:layout_marginTop="30dp"
+        android:layout_marginStart="10dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="File name: "
+            android:textSize="18sp"/>
+
+        <EditText
+            android:id="@+id/fileEditText"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:inputType="text" />
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/requestTextBtn"
+        android:layout_marginTop="30dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
@@ -45,6 +53,7 @@
 
     <Button
         android:id="@+id/logoutBtn"
+        android:layout_marginTop="30dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
