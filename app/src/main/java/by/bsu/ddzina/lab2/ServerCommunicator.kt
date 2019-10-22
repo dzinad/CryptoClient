@@ -13,9 +13,15 @@ import java.security.SecureRandom
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.RSAPublicKeySpec
 import javax.crypto.spec.SecretKeySpec
+import java.io.DataOutputStream
+
 
 @TargetApi(Build.VERSION_CODES.N)
 class ServerCommunicator(private val context: Context) {
+
+    enum class LoginResult(val stringValue: String) {
+        OK("OK"), WRONG_USERNAME("WRONG_USERNAME"), WRONG_PASSWORD("WRONG_PASSWORD"), ERROR("ERROR");
+    }
 
     private val baseUrl = "http://10.0.2.2:8000/"
     private var sessionKey: Key? = null
@@ -34,6 +40,31 @@ class ServerCommunicator(private val context: Context) {
         }
     }
 
+    fun requestLogin(username: String, password: String, completion: (LoginResult) -> Unit) {
+        val url = URL("${baseUrl}login")
+        val json = JSONObject().put("username", username).put("password", password)
+        val body = json.toString().toByteArray()
+        with(url.openConnection() as HttpURLConnection) {
+            requestMethod = "POST"
+            setRequestProperty("Content-Length", "${body.size}")
+            DataOutputStream(this.outputStream).use { wr -> wr.write(body) }
+            println("Login. Response code: $responseCode")
+            if (responseCode == 200) {
+                val responseString = String(inputStream.readBytes())
+                var loginResult = LoginResult.ERROR
+                for (value in LoginResult.values()) {
+                    if (value.stringValue == responseString) {
+                        loginResult = value
+                        break
+                    }
+                }
+                completion(loginResult)
+            } else {
+                completion(LoginResult.ERROR)
+            }
+        }
+    }
+
     fun sendPublicRsaKey(key: RSAPublicKey) {
         publicKey = key
         // todo remove
@@ -47,7 +78,7 @@ class ServerCommunicator(private val context: Context) {
                 .toByteArray(Charsets.UTF_8)
         )
         try {
-            val url = URL("${baseUrl}public_rsa?exp=${key.publicExponent}&mod=${key.modulus}")
+            val url = URL("${baseUrl}public_rsa/?exp=${key.publicExponent}&mod=${key.modulus}")
             with(url.openConnection() as HttpURLConnection) {
                 requestMethod = "GET"
                 println("Send Public RSA key. Response code: $responseCode")
@@ -62,15 +93,14 @@ class ServerCommunicator(private val context: Context) {
         val text = "The future is as certain as life will come to an end, when time feels like a burden we struggle with our certain death"
         val url = URL("${baseUrl}get_file?file=$fileName")
         completion(CryptoHelper.encryptAes(sessionKey!!, text.toByteArray(Charsets.UTF_8)))
-//        with(url.openConnection() as HttpURLConnection) {
-//            requestMethod = "GET"
-//            println("Request text file. Response code: $responseCode")
-//            inputStream.bufferedReader().use {
-//                it.lines().forEach { line ->
-//                    println(line)
-//                }
-//            }
-//        }
+        with(url.openConnection() as HttpURLConnection) {
+            requestMethod = "GET"
+            println("Request text file. Response code: $responseCode")
+            if (responseCode == 200) {
+                // todo check
+                //completion(CryptoHelper.encryptAes(sessionKey!!, inputStream.readBytes()))
+            }
+        }
     }
 
     fun sendRequestForSessionKey(completion: (ByteArray) -> Unit) {
@@ -80,11 +110,14 @@ class ServerCommunicator(private val context: Context) {
         r.nextBytes(aesKey)
         sessionKey = SecretKeySpec(aesKey, "AES")
         completion(CryptoHelper.encryptRsa(publicKey!!, aesKey))
-//        with(url.openConnection() as HttpURLConnection) {
-//            requestMethod = "GET"
-//            println("Request text file. Response code: $responseCode")
-//            completion(String(inputStream.readBytes()))
-//        }
+        with(url.openConnection() as HttpURLConnection) {
+            requestMethod = "GET"
+            println("Request text file. Response code: $responseCode")
+            if (responseCode == 200) {
+                // todo check handle response
+                //completion(CryptoHelper.encryptRsa(publicKey!!, inputStream.readBytes()))
+            }
+        }
 
     }
 

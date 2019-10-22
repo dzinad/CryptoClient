@@ -1,6 +1,8 @@
 package by.bsu.ddzina.lab2
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
@@ -18,22 +20,21 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var serverCommunicator: ServerCommunicator
     private val executor = Executors.newSingleThreadExecutor()
-    private lateinit var pTextView: EditText
-    private lateinit var qTextView: EditText
     private lateinit var fileTextView: EditText
     private var sessionKey: Key? = null
     private var privateKey: RSAPrivateKey? = null
     private lateinit var keyStorageHelper: KeyStorageHelper
+    private lateinit var preferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        pTextView = findViewById(R.id.pEditText)
-        qTextView = findViewById(R.id.qEditText)
         fileTextView = findViewById(R.id.fileEditText)
         findViewById<Button>(R.id.requestTextBtn).setOnClickListener(this)
         findViewById<Button>(R.id.generateBtn).setOnClickListener(this)
         findViewById<Button>(R.id.requestSessionKeyBtn).setOnClickListener(this)
+        findViewById<Button>(R.id.logoutBtn).setOnClickListener(this)
+        preferences = applicationContext.getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
         keyStorageHelper = KeyStorageHelper(applicationContext)
         serverCommunicator = ServerCommunicator(applicationContext) // todo move initialization to constructor
         executor.execute { loadPrivateKey() }
@@ -45,6 +46,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 R.id.generateBtn -> clickedGenerate()
                 R.id.requestTextBtn -> clickedRequestText()
                 R.id.requestSessionKeyBtn -> clickedRequestSessionKey()
+                R.id.logoutBtn -> clickedLogout()
             }
         }
     }
@@ -64,7 +66,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun clickedRequestText() {
         val fileName = fileTextView.text.toString()
-        if (!TextUtils.isEmpty(fileName)) { // todo remove !
+        if (TextUtils.isEmpty(fileName)) {
             Toast.makeText(this, "Enter file name", Toast.LENGTH_SHORT).show()
         } else {
             executor.execute {
@@ -99,5 +101,16 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun loadPrivateKey() {
         privateKey = keyStorageHelper.loadPrivateKey()
+    }
+
+    private fun clickedLogout() {
+        executor.execute {
+            preferences.edit().remove(keyUsername).commit()
+            println("[ddlog] ${preferences.getString(keyUsername, null)}")
+            runOnUiThread {
+                finish()
+                startActivity(Intent(this, LoginActivity::class.java))
+            }
+        }
     }
 }

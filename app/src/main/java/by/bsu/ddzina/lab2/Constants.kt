@@ -8,3 +8,6 @@ const val jsonKeyModulus = "modulus"
 const val jsonKeyExponent = "exponent"
 const val jsonKeyEncyptedKey = "text"
 const val jsonKeyIv = "iv"
+const val keyUsername = "username"
+const val preferencesName = "com.bsu.ddzina.lab2.preferences"
+

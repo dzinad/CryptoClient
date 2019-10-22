@@ -15,46 +15,6 @@
         android:textSize="20sp"
         />
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <TextView
-            android:id="@+id/pTextView"
-            android:layout_width="15dp"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:text="p: " />
-
-        <EditText
-            android:id="@+id/pEditText"
-            android:layout_height="wrap_content"
-            android:layout_width="50dp"
-            android:inputType="number" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <TextView
-            android:id="@+id/qTextView"
-            android:textSize="14sp"
-            android:layout_width="15dp"
-            android:layout_height="wrap_content"
-            android:text="q: " />
-
-        <EditText
-            android:id="@+id/qEditText"
-            android:layout_width="50dp"
-            android:layout_height="wrap_content"
-            android:inputType="number" />
-
-    </LinearLayout>
-
     <Button
         android:id="@+id/generateBtn"
         android:layout_width="wrap_content"
@@ -82,5 +42,12 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:text="Request text" />
+
+    <Button
+        android:id="@+id/logoutBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Log out" />
 
 </LinearLayout>
