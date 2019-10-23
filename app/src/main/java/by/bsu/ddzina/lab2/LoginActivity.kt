@@ -64,6 +64,9 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                             ServerCommunicator.LoginResult.WRONG_PASSWORD -> {
                                 Utils.showToast(applicationContext, "Wrong password.")
                             }
+                            ServerCommunicator.LoginResult.NO_SESSION_KEY -> {
+                                Utils.showToast(applicationContext, "Request session key first.")
+                            }
                         }
                     }
                 }
@@ -73,6 +76,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
     private fun loginSuccessful() {
         finish()
-        startActivity(Intent(this, MainActivity::class.java))
+        startActivity(Intent(this, TextActivity::class.java))
     }
 }

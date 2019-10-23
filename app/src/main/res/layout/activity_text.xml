@@ -11,6 +11,43 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:layout_marginStart="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="File name: "
+                android:textSize="18sp"/>
+
+            <EditText
+                android:id="@+id/fileEditText"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:inputType="text" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/requestTextBtn"
+            android:layout_marginTop="30dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Request text" />
+
+        <Button
+            android:id="@+id/logoutBtn"
+            android:layout_marginTop="30dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Log out" />
+
         <TextView
             android:id="@+id/textTextView"
             android:layout_width="wrap_content"

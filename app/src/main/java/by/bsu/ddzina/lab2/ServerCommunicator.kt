@@ -3,6 +3,7 @@ package by.bsu.ddzina.lab2
 import android.annotation.TargetApi
 import android.content.Context
 import android.os.Build
+import android.util.Base64
 import android.util.Log
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -20,40 +21,53 @@ import java.io.DataOutputStream
 class ServerCommunicator {
 
     enum class LoginResult(val stringValue: String) {
-        OK("OK"), WRONG_USERNAME("WRONG_USERNAME"), WRONG_PASSWORD("WRONG_PASSWORD"), ERROR("ERROR");
+        OK("OK"),
+        WRONG_USERNAME("WRONG_USERNAME"),
+        WRONG_PASSWORD("WRONG_PASSWORD"),
+        ERROR("ERROR"),
+        NO_SESSION_KEY("NO_SESSION_KEY");
     }
 
     private val baseUrl = "http://10.0.2.2:8000/"
-    private var sessionKey: Key? = null
-    private var publicKey: Key? = null
 
     fun requestLogin(username: String, password: String, completion: (LoginResult) -> Unit) {
-        val url = URL("${baseUrl}login")
-        val json = JSONObject().put("username", username).put("password", password)
-        val body = json.toString().toByteArray()
-        with(url.openConnection() as HttpURLConnection) {
-            requestMethod = "POST"
-            setRequestProperty("Content-Length", "${body.size}")
-            DataOutputStream(this.outputStream).use { wr -> wr.write(body) }
-            println("Login. Response code: $responseCode")
-            if (responseCode == 200) {
-                val responseString = String(inputStream.readBytes())
-                var loginResult = LoginResult.ERROR
-                for (value in LoginResult.values()) {
-                    if (value.stringValue == responseString) {
-                        loginResult = value
-                        break
+        if (sessionKey == null) {
+            completion(LoginResult.NO_SESSION_KEY)
+            return
+        }
+        try {
+            val url = URL("${baseUrl}login")
+            val encryptedJson = CryptoHelper.encryptAes(sessionKey!!, password)
+            val json = JSONObject()
+                .put("username", username)
+                .put("password", encryptedJson.toString())
+            val body = json.toString().toByteArray()
+            with(url.openConnection() as HttpURLConnection) {
+                requestMethod = "POST"
+                setRequestProperty("Content-Length", "${body.size}")
+                DataOutputStream(this.outputStream).use { wr -> wr.write(body) }
+                println("Login. Response code: $responseCode")
+                if (responseCode == 200) {
+                    val responseString = String(inputStream.readBytes())
+                    var loginResult = LoginResult.ERROR
+                    for (value in LoginResult.values()) {
+                        if (value.stringValue == responseString) {
+                            loginResult = value
+                            break
+                        }
                     }
+                    completion(loginResult)
+                } else {
+                    completion(LoginResult.ERROR)
                 }
-                completion(loginResult)
-            } else {
-                completion(LoginResult.ERROR)
             }
+        } catch (ex: Throwable) {
+            Log.e("[ServerCommunicator]", "Something went wrong while requesting login.")
+            ex.printStackTrace()
         }
     }
 
     fun sendPublicRsaKey(key: RSAPublicKey) {
-        publicKey = key
         val body = JSONObject()
             .put(jsonKeyExponent, key.publicExponent.toString())
             .put(jsonKeyModulus, key.modulus.toString())
@@ -75,41 +89,47 @@ class ServerCommunicator {
     }
 
     fun sendRequestForFile(fileName: String, completion: (JSONObject?) -> Unit) {
-        val text = "The future is as certain as life will come to an end, when time feels like a burden we struggle with our certain death"
-        val url = URL("${baseUrl}get_file?file=$fileName")
-        //completion(CryptoHelper.encryptAes(sessionKey!!, text.toByteArray(Charsets.UTF_8)))
-        with(url.openConnection() as HttpURLConnection) {
-            requestMethod = "GET"
-            println("Request text file. Response code: $responseCode")
-            if (responseCode == 200) {
-                try {
-                    val responseJson = JSONObject(String(inputStream.readBytes()))
-                    completion(responseJson)
-                } catch (ex: Throwable) {
-                    Log.e("[ServerCommunicator]", "Could not parse server response")
-                    ex.printStackTrace()
+        try {
+            val url = URL("${baseUrl}get_file?file=$fileName")
+            with(url.openConnection() as HttpURLConnection) {
+                requestMethod = "GET"
+                println("Request text file. Response code: $responseCode")
+                if (responseCode == 200) {
+                    try {
+                        val responseJson = JSONObject(String(inputStream.readBytes()))
+                        completion(responseJson)
+                    } catch (ex: Throwable) {
+                        Log.e("[ServerCommunicator]", "Could not parse server response")
+                        ex.printStackTrace()
+                        completion(null)
+                    }
+                } else {
                     completion(null)
                 }
-            } else {
-                completion(null)
             }
+        } catch (ex: Throwable) {
+            Log.e("[ServerCommunicator]", "Something went wrong while requesting file.")
+            ex.printStackTrace()
         }
     }
 
     fun sendRequestForSessionKey(completion: (ByteArray) -> Unit) {
-        val url = URL("${baseUrl}session_key")
-        val r = SecureRandom()
-        val aesKey = ByteArray(16)
-        r.nextBytes(aesKey)
-        sessionKey = SecretKeySpec(aesKey, "AES")
-        completion(CryptoHelper.encryptRsa(publicKey!!, aesKey))
-        with(url.openConnection() as HttpURLConnection) {
-            requestMethod = "GET"
-            println("Request text file. Response code: $responseCode")
-            if (responseCode == 200) {
-                // todo check handle response
-                //completion(CryptoHelper.encryptRsa(publicKey!!, inputStream.readBytes()))
+        try {
+            val url = URL("${baseUrl}session_key")
+            val r = SecureRandom()
+            val aesKey = ByteArray(16)
+            r.nextBytes(aesKey)
+            sessionKey = SecretKeySpec(aesKey, "AES")
+            with(url.openConnection() as HttpURLConnection) {
+                requestMethod = "GET"
+                println("Request session key. Response code: $responseCode")
+                if (responseCode == 200) {
+                    completion(inputStream.readBytes())
+                }
             }
+        } catch (ex: Throwable) {
+            Log.e("[ServerCommunicator]", "Something went wrong while requesting session key.")
+            ex.printStackTrace()
         }
 
     }

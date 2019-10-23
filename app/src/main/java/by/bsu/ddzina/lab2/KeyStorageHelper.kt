@@ -1,11 +1,13 @@
 package by.bsu.ddzina.lab2
 
 import android.content.Context
+import android.util.Base64
 import android.util.Log
 import org.json.JSONObject
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
 import java.security.spec.RSAPrivateKeySpec
+import java.util.*
 import javax.crypto.spec.SecretKeySpec
 
 class KeyStorageHelper(private val context: Context) {
@@ -14,14 +16,16 @@ class KeyStorageHelper(private val context: Context) {
 
     fun loadPrivateKey(): RSAPrivateKey? {
         try {
-            val json  =  JSONObject(String(
+            val privateKeyMetaJson = JSONObject(String(Utils.readFile(context, privateKeyMetaFileName)))
+            val iv = Base64.decode(privateKeyMetaJson.getString(jsonKeyIv).toByteArray(Charsets.UTF_8), Base64.DEFAULT)
+            val decryptedString = String(
                 CryptoHelper.decryptText(
                     SecretKeySpec(privateKeyPassword, "AES"),
-                    Utils.readFile(context, privateKeyFileName),
-                    Utils.readFile(context, privateKeyIVFileName)
+                    Base64.decode(Utils.readFile(context, privateKeyFileName), Base64.DEFAULT),
+                    iv
                 ),
                 Charsets.UTF_8)
-            )
+            val json  = JSONObject(decryptedString.dropLast(privateKeyMetaJson.optInt(jsonKeyExtraSymbols)))
 
             val keySpec = RSAPrivateKeySpec(
                 json.getString(jsonKeyModulus).toBigInteger(),
@@ -42,17 +46,20 @@ class KeyStorageHelper(private val context: Context) {
             json.put(jsonKeyExponent, privateKey?.privateExponent.toString())
             val encryptedJson = CryptoHelper.encryptAes(
                 SecretKeySpec(privateKeyPassword, "AES"),
-                json.toString().toByteArray(Charsets.UTF_8)
+                json.toString()
             )
             Utils.saveFile(
                 context,
                 privateKeyFileName,
-                encryptedJson.get(jsonKeyEncyptedKey) as ByteArray
+                encryptedJson.getString(jsonKeyContent).toByteArray(Charsets.UTF_8)
             )
+            val metaJson = JSONObject()
+                .put(jsonKeyIv, encryptedJson.getString(jsonKeyIv))
+                .put(jsonKeyExtraSymbols, encryptedJson.getInt(jsonKeyExtraSymbols))
             Utils.saveFile(
                 context,
-                privateKeyIVFileName,
-                encryptedJson.get(jsonKeyIv) as ByteArray
+                privateKeyMetaFileName,
+                metaJson.toString().toByteArray(Charsets.UTF_8)
             )
         } catch (ex: Throwable) {
             Log.e("[KeyStorageHelper]", "Something went wrong while saving private key")
