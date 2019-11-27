@@ -22,10 +22,11 @@ class KeyStorageHelper(private val context: Context) {
                 CryptoHelper.decryptText(
                     SecretKeySpec(privateKeyPassword, "AES"),
                     Base64.decode(Utils.readFile(context, privateKeyFileName), Base64.DEFAULT),
-                    iv
+                    iv,
+                    privateKeyMetaJson.optInt(jsonKeyExtraSymbols)
                 ),
                 Charsets.UTF_8)
-            val json  = JSONObject(decryptedString.dropLast(privateKeyMetaJson.optInt(jsonKeyExtraSymbols)))
+            val json  = JSONObject(decryptedString)
 
             val keySpec = RSAPrivateKeySpec(
                 json.getString(jsonKeyModulus).toBigInteger(),

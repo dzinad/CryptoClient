@@ -14,7 +14,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
+            android:layout_marginTop="10dp"
             android:layout_marginStart="10dp"
             android:orientation="horizontal">
 
@@ -25,7 +25,7 @@
                 android:textSize="18sp"/>
 
             <EditText
-                android:id="@+id/fileEditText"
+                android:id="@+id/requestFileEditText"
                 android:layout_width="200dp"
                 android:layout_height="wrap_content"
                 android:inputType="text" />
@@ -34,11 +34,43 @@
 
         <Button
             android:id="@+id/requestTextBtn"
-            android:layout_marginTop="30dp"
+            android:layout_marginTop="10dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:text="Request text" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/chooseFileBtn"
+                android:layout_marginTop="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Choose file" />
+
+
+            <Button
+                android:id="@+id/sendFileBtn"
+                android:layout_marginTop="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="Send file" />
+
+            <TextView
+                android:id="@+id/filenameTextView"
+                android:layout_gravity="center_vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
 
         <Button
             android:id="@+id/logoutBtn"
